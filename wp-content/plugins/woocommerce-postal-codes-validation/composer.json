@@ -1,0 +1,59 @@
+{
+    "name": "stbeli/woocommerce-postal-codes-validation",
+    "description": "WooCommerce Postal codes validation",
+    "license": "GPL-3.0-or-later",
+    "type": "wordpress-plugin",
+    "authors": [
+        {
+            "name": "Slavko Tepavcevic",
+            "email": "slavko.tepavcevic@gmail.com",
+            "homepage": "https://www.linkedin.com/in/slavkotepavcevic/"
+        }
+    ],
+    "homepage": "https://github.com/stbeli/twelwe",
+    "require": {
+        "php": ">=7.4",
+        "composer/installers": "1.x",
+        "decodelabs/tagged": "^0.11.9",
+        "inpsyde/wp-context": "1.3.*",
+        "wpbp/debug": "1.1.*"
+    },
+    "require-dev": {
+        "codeatcode/codeatcs": "^1.0",
+        "codeception/codeception": "4.2.*",
+        "codeception/module-asserts": "^1.0",
+        "codeception/module-cli": "^1.0",
+        "codeception/module-db": "^1.0",
+        "codeception/module-filesystem": "^1.0",
+        "codeception/module-phpbrowser": "^1.0",
+        "codeception/module-rest": "^1.2",
+        "codeception/module-webdriver": "^1.0",
+        "codeception/util-universalframework": "^1.0",
+        "dealerdirect/phpcodesniffer-composer-installer": "1.0.0",
+        "ergebnis/composer-normalize": "^2.6",
+        "lucatume/function-mocker": "~1.0",
+        "lucatume/wp-browser": "^3.1",
+        "phpro/grumphp": "^1.13",
+        "phpunit/phpunit": "^9.2",
+        "szepeviktor/phpstan-wordpress": "^1.1.6"
+    },
+    "minimum-stability": "dev",
+    "prefer-stable": true,
+    "autoload": {
+        "psr-4": {
+            "WooCommerce_Postal_codes_validation\\Backend\\": "backend/",
+            "WooCommerce_Postal_codes_validation\\Frontend\\": "frontend/",
+            "WooCommerce_Postal_codes_validation\\Cli\\": "cli/",
+            "WooCommerce_Postal_codes_validation\\Engine\\": "engine/"
+        }
+    },
+    "config": {
+        "allow-plugins": {
+            "composer/installers": true,
+            "cweagans/composer-patches": true,
+            "dealerdirect/phpcodesniffer-composer-installer": true,
+            "ergebnis/composer-normalize": true,
+            "phpro/grumphp": true
+        }
+    }
+}
