@@ -8,3 +8,18 @@
  Version:      0.1
 */
 
+@media(min-width: 769px) {
+    .woocommerce ul.products {
+        display: flex;
+        flex-wrap: wrap;
+    }
+    .woocommerce ul.products li.product,
+    .woocommerce ul.products li.product a {
+        display: flex;
+        flex-direction: column;
+        
+    }
+    .woocommerce ul.products li.product a.woocommerce-LoopProduct-link {
+        flex: 1;
+    }
+}
