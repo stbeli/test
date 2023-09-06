@@ -1,6 +1,6 @@
 === WooCommerce Postal codes validation ===
 Contributors: stbeli
-Tags: comments, spam (maximum 12)
+Tags: postal, codes, validation
 Requires at least: 4.9
 Tested up to: 5.3
 Stable tag: 1.0.0
