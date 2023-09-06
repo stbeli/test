@@ -1,0 +1,245 @@
+# https://docs.github.com/en/actions
+
+name: "Integrate"
+
+on:
+  pull_request:
+    branches:
+      - "master"
+  push:
+    branches:
+      - "master"
+
+env:
+  PHP_EXTENSIONS: "mbstring, mysql"
+
+jobs:
+  coding-standards:
+    name: "Coding Standards"
+
+    runs-on: "ubuntu-latest"
+
+    strategy:
+      matrix:
+        php-version:
+          - "7.4"
+
+        dependencies:
+          - "highest"
+
+    steps:
+      - name: "Checkout"
+        uses: "actions/checkout@v2.3.1"
+
+      - name: "Install PHP with extensions"
+        uses: "shivammathur/setup-php@2.16.0"
+        with:
+          coverage: "none"
+          extensions: "${{ env.PHP_EXTENSIONS }}"
+          php-version: "${{ matrix.php-version }}"
+
+      - name: "Validate composer.json"
+        working-directory: "./wp-content/plugins/woocommerce-postal-codes-validation"
+        run: "composer validate"
+
+      - name: "Determine composer cache directory"
+        working-directory: "./wp-content/plugins/woocommerce-postal-codes-validation"
+        id: "determine-composer-cache-directory"
+        run: "echo \"::set-output name=directory::$(composer config cache-dir)\""
+
+      - name: "Install highest dependencies from composer.json"
+        working-directory: "./wp-content/plugins/woocommerce-postal-codes-validation"
+        run: "composer update --no-interaction --no-progress --no-suggest"
+
+      - name: "Run ergebnis/composer-normalize"
+        working-directory: "./wp-content/plugins/woocommerce-postal-codes-validation"
+        run: "composer normalize --dry-run"
+
+      - name: "Run squizlabs/PHP_CodeSniffer"
+        working-directory: "./wp-content/plugins/woocommerce-postal-codes-validation"
+        run: "vendor/bin/phpcs -s --standard=CodeatCodingStandard --exclude=Squiz.PHP.CommentedOutCode,Generic.Commenting.Todo,SlevomatCodingStandard.Functions.UnusedParameter,SlevomatCodingStandard.Variables.UnusedVariable,Squiz.Commenting.FileComment ."
+
+      - name: "Cache dependencies installed with composer"
+        uses: "actions/cache@v2.0.0"
+        with:
+          path: "${{ steps.determine-composer-cache-directory.outputs.directory }}"
+          key: "php-${{ matrix.php-version }}-composer-${{ matrix.dependencies }}-${{ hashFiles('reservio/composer.json') }}"
+          restore-keys: "php-${{ matrix.php-version }}-composer-${{ matrix.dependencies }}-"
+
+     # - name: "Readme Validation"
+     #  run: |
+     #   curl -O https://raw.githubusercontent.com/wp-cli/builds/gh-pages/phar/wp-cli.phar && chmod +x wp-cli.phar && mv wp-cli.phar /usr/local/bin/wp
+     #   wp package install swissspidy/validate-readme-command:dev-main --allow-root
+     #   wp plugin validate-readme ./reservio/README.txt --allow-root
+
+  static-code-analysis:
+    name: "Static Code Analysis"
+
+    runs-on: "ubuntu-latest"
+
+    strategy:
+      matrix:
+        php-version:
+          - "7.4"
+
+        dependencies:
+          - "highest"
+
+    steps:
+      - name: "Checkout"
+        uses: "actions/checkout@v2.3.1"
+
+      - name: "Install PHP with extensions"
+        uses: "shivammathur/setup-php@2.20.1"
+        with:
+          coverage: "none"
+          extensions: "${{ env.PHP_EXTENSIONS }}"
+          php-version: "${{ matrix.php-version }}"
+
+      - name: "Determine composer cache directory"
+        working-directory: "./wp-content/plugins/woocommerce-postal-codes-validation"
+        id: "determine-composer-cache-directory"
+        run: "echo \"::set-output name=directory::$(composer config cache-dir)\""
+
+      - name: "Install highest dependencies from composer.json"
+        working-directory: "./wp-content/plugins/woocommerce-postal-codes-validation"
+        if: "matrix.dependencies == 'highest'"
+        run: "composer update --no-interaction --no-progress --no-suggest"
+
+      - name: "Run phpstan/phpstan"
+        working-directory: "./wp-content/plugins/woocommerce-postal-codes-validation"
+        run: "vendor/bin/phpstan analyse"
+
+      - name: "Cache dependencies installed with composer"
+        uses: "actions/cache@v2.0.0"
+        with:
+          path: "${{ steps.determine-composer-cache-directory.outputs.directory }}"
+          key: "php-${{ matrix.php-version }}-composer-${{ matrix.dependencies }}-${{ hashFiles('reservio/composer.json') }}"
+          restore-keys: "php-${{ matrix.php-version }}-composer-${{ matrix.dependencies }}-"
+
+  node-build:
+    name: "Build scripts"
+
+    runs-on: ${{ matrix.os }}
+
+    strategy:
+      matrix:
+        # See supported Node.js release schedule at https://nodejs.org/en/about/releases/
+        node-version: [ 16.x, 18.x, 20.x ]
+        os: [ ubuntu-latest, macos-latest, windows-latest ]
+
+    steps:
+      - name: "Checkout"
+        uses: "actions/checkout@v3"
+
+      - name: "Install NodeJS"
+        uses: "actions/setup-node@v3"
+        with:
+          node-version: ${{ matrix.node-version }}
+
+      - name: "install dependencies"
+        working-directory: "./wp-content/plugins/woocommerce-postal-codes-validation"
+        run: "npm install"
+
+  editorconfig-adherence:
+    name: "EditorConfig adherence"
+
+    runs-on: "ubuntu-latest"
+
+    steps:
+      - name: "Checkout"
+        uses: "actions/checkout@v3"
+
+      - name: "Install NodeJS"
+        uses: "actions/setup-node@v3"
+        with:
+          node-version: '16'
+
+      - name: "install dependencies"
+        working-directory: "./wp-content/plugins/woocommerce-postal-codes-validation"
+        run: "npm install"
+
+      - name: "Check EditorConfig adherence"
+        working-directory: "./wp-content/plugins/woocommerce-postal-codes-validation"
+        run: "npx prettier --check . !vendor !tests !assets/build"
+
+  codeception-tests:
+    name: "Codeception tests"
+    timeout-minutes: 15
+
+    runs-on: "ubuntu-latest"
+
+    strategy:
+      matrix:
+        php-version:
+          - "7.4"
+
+        dependencies:
+          - "highest"
+
+    steps:
+      - name: "Checkout"
+        uses: "actions/checkout@v2.3.1"
+
+      - name: "Install PHP with extensions"
+        uses: "shivammathur/setup-php@2.20.1"
+        with:
+          coverage: "none"
+          extensions: "${{ env.PHP_EXTENSIONS }}"
+          php-version: "${{ matrix.php-version }}"
+
+      - name: "Determine composer cache directory"
+        working-directory: "./wp-content/plugins/woocommerce-postal-codes-validation"
+        id: "determine-composer-cache-directory"
+        run: "echo \"::set-output name=directory::$(composer config cache-dir)\""
+
+      - name: "Install highest dependencies from composer.json"
+        working-directory: "./wp-content/plugins/woocommerce-postal-codes-validation"
+        if: "matrix.dependencies == 'highest'"
+        run: "composer update --no-interaction --no-progress --no-suggest"
+
+      - name: "Cache dependencies installed with composer"
+        uses: "actions/cache@v2.0.0"
+        with:
+          path: "${{ steps.determine-composer-cache-directory.outputs.directory }}"
+          key: "php-${{ matrix.php-version }}-composer-${{ matrix.dependencies }}-${{ hashFiles('reservio/composer.json') }}"
+          restore-keys: "php-${{ matrix.php-version }}-composer-${{ matrix.dependencies }}-"
+
+      - name: "Set up MySQL"
+        uses: "mirromutth/mysql-action@v1.1"
+        with:
+          collation server: utf8mb4_unicode_ci
+          mysql version: 8.0
+          mysql database: wordpress_unit_tests
+          container port: 3306
+          mysql root password: test
+
+      - name: "Wait for MySQL"
+        run: |
+          while ! mysqladmin ping --host=127.0.0.1 --password=test --silent; do
+            sleep 2
+          done
+
+      - name: "Set up WordPress"
+        run: |
+          curl -s -o /tmp/wp-cli.phar https://raw.githubusercontent.com/wp-cli/builds/gh-pages/phar/wp-cli.phar
+          chmod +x /tmp/wp-cli.phar && mv /tmp/wp-cli.phar /usr/local/bin/wp
+          mkdir -p /tmp/WP
+          cd /tmp/WP
+          wp core download
+          wp config create --dbname="wordpress_unit_tests" --dbuser="root" --dbpass="test" --dbhost="127.0.0.1:3306" --dbprefix="wp_full_"
+          wp core install --url="localhost:8000" --title="Test" --admin_user="admin" --admin_password="password" --admin_email="admin@reservio.test" --skip-email
+          wp rewrite structure '/%postname%/' --hard
+          # Needs changes to be used outside the boilerplate
+          ln -s ${GITHUB_WORKSPACE}/reservio /tmp/WP/wp-content/plugins/
+
+      - name: "Set Codeception parameters"
+        working-directory: "./wp-content/plugins/woocommerce-postal-codes-validation"
+        run: |
+          rm tests/_envs/.env
+          mv tests/_envs/.env.testing tests/_envs/.env
+
+      - name: "Run codeception wpunit"
+        working-directory: "./wp-content/plugins/woocommerce-postal-codes-validation"
+        run: |
+          ./vendor/bin/codecept run wpunit
