@@ -22,7 +22,6 @@ class UploadCsv extends Base {
 	/**
 	 * Initialize the class.
 	 *
-	 * @return void|bool
 	 */
 	public function initialize() {
 		if ( !parent::initialize() ) {
